@@ -13,7 +13,7 @@ const QUOTES = [
   '种一棵树最好的时间是十年前，其次是现在',
   '生活明朗，万物可爱',
   '慢慢来，比较快',
-  '每一天都是余生中最年轻的一天',
+  '每一天都是你最年轻的一天',
   '眼里有光，心中有爱',
   '心之所向，素履以往',
   '去做你害怕的事，害怕自会消失',
@@ -22,10 +22,13 @@ const QUOTES = [
 
 // 海报周点配色（与 index.wxss 语义色保持一致）
 const POSTER_COLORS = {
-  passed: '#1a1a1a',
+  passed: '#c9a13b',
   future: '#dfe3e8',
-  milestone: '#e6b84c'
+  milestone: '#d9574f'
 };
+
+// 引导页演示行的柔和彩色（与图例「未来的一周」渐变同款色系）
+const DEMO_PASTELS = ['#ff9a9e', '#fad0c4', '#a18cd1', '#fbc2eb', '#8fd3f4'];
 
 // 生成一个随机颜色（HSL，与原网页 getRandomColor 一致）
 function getRandomColor() {
@@ -46,15 +49,25 @@ function formatThousands(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+// 随机彩虹渐变字符串（标题与进度条共用，每次刷新颜色都不同）
+function randomGradient() {
+  const colors = [];
+  for (let i = 0; i < 5; i++) {
+    colors.push(getRandomColor());
+  }
+  return `linear-gradient(to right, ${colors.join(', ')})`;
+}
+
 Page({
   data: {
     birthdate: '1990-01-01',
     needBirthday: false, // 首次打开显示引导页
     lifespans: [60, 70, 80, 90, 100],
-    lifespanLabels: ['活到 60 岁', '活到 70 岁', '活到 80 岁', '活到 90 岁', '活到 100 岁'],
+    lifespanLabels: ['60 年', '70 年', '80 年', '90 年', '100 年'],
     lifespan: 80,
     lifespanIndex: 2, // 对应 80 岁
     decades: [],
+    demoWeeks: [],
     stats: {
       passedPercent: '',
       passedWeeks: 0,
@@ -69,6 +82,13 @@ Page({
   },
 
   onLoad() {
+    // 开启右上角「···」菜单里的「转发给朋友」和「分享到朋友圈」两个入口
+    // 注意：不调用 wx.showShareMenu 时，即使定义了 onShareTimeline，朋友圈入口也不会显示
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
+
     const savedBirthdate = wx.getStorageSync('birthdate');
     const savedLifespan = wx.getStorageSync('lifespan');
 
@@ -95,7 +115,18 @@ Page({
     // 每日一句格言：按一年中的第几天轮换，同一天内保持不变
     const now = new Date();
     const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / MS_PER_DAY);
-    this.setData({ quote: QUOTES[dayOfYear % QUOTES.length] });
+    // 渐变提前生成：首次打开显示引导页时不走 updateCalendar，标题也要有颜色
+    // 引导页演示行：52 个圆点 = 一年，前半年金色（已过），后半年柔和彩色（未来），白点标记「现在」
+    const demoWeeks = [];
+    const halfYear = WEEKS_PER_YEAR / 2;
+    for (let i = 0; i < WEEKS_PER_YEAR; i++) {
+      demoWeeks.push({
+        i,
+        isNow: i === halfYear - 1,
+        color: i === halfYear - 1 ? '' : i < halfYear ? '#c9a13b' : DEMO_PASTELS[i % DEMO_PASTELS.length]
+      });
+    }
+    this.setData({ quote: QUOTES[dayOfYear % QUOTES.length], gradient: randomGradient(), demoWeeks });
 
     if (!patch.needBirthday) {
       this.updateCalendar();
@@ -151,7 +182,7 @@ Page({
   // 唯一的周点分类函数：WXML 数据与 canvas 海报共用，保证颜色语义一致
   getWeekState(totalWeek) {
     const totalWeeks = this.data.lifespan * WEEKS_PER_YEAR;
-    // 本周 = 正在度过的这一周，位于黑白交界处；寿命全部用完时无标记
+    // 本周 = 正在度过的这一周，位于黑白交界处；时间轴全部走完时无标记
     if (totalWeek === this._ageInWeeks && this._ageInWeeks < totalWeeks) return 'now';
     // 里程碑 = 整岁生日的周（18/30/60/80 岁），金色标记；已过的里程碑仍保持金色
     if (
@@ -168,14 +199,14 @@ Page({
   updateCalendar() {
     const { birthdate, lifespan } = this.data;
     const totalWeeks = lifespan * WEEKS_PER_YEAR;
-    const decadeCount = Math.floor(lifespan / 10); // 兜底：将来开放任意寿命也不会出非整数块
+    const decadeCount = Math.floor(lifespan / 10); // 兜底：将来开放任意跨度也不会出非整数块
 
     // 用 '/' 解析为本地时间，避免 iOS 上按 UTC 解析导致日期偏移
     const birth = new Date(birthdate.replace(/-/g, '/'));
     const today = new Date();
 
     let ageInWeeks = Math.floor((today - birth) / MS_PER_WEEK);
-    // 边界保护：出生日期在未来 / 超过预期寿命时，避免负数和超界
+    // 边界保护：出生日期在未来 / 超过时间跨度时，避免负数和超界
     ageInWeeks = Math.max(0, Math.min(ageInWeeks, totalWeeks));
     this._ageInWeeks = ageInWeeks;
 
@@ -185,7 +216,7 @@ Page({
     const rawDays = Math.floor((today - birth) / MS_PER_DAY);
     const dayNumber = Math.max(1, rawDays + 1);
     const remainingDays = Math.max(0, totalWeeks * 7 - rawDays);
-    const lifeLine = `今天是你来到世界的第 ${formatThousands(dayNumber)} 天 · 剩余约 ${formatThousands(remainingDays)} 天`;
+    const lifeLine = `今天是你来到世界的第 ${formatThousands(dayNumber)} 天 · 未来还有约 ${formatThousands(remainingDays)} 天`;
 
     const stats = {
       passedPercent: ((ageInWeeks / totalWeeks) * 100).toFixed(1) + '%',
@@ -198,11 +229,7 @@ Page({
     const passedPercent = (ageInWeeks / totalWeeks) * 100;
     const futurePercent = 100 - passedPercent;
 
-    const gradientColors = [];
-    for (let i = 0; i < 5; i++) {
-      gradientColors.push(getRandomColor());
-    }
-    const gradient = `linear-gradient(to right, ${gradientColors.join(', ')})`;
+    const gradient = randomGradient();
 
     const decades = [];
     for (let i = 0; i < decadeCount; i++) {
@@ -314,14 +341,18 @@ Page({
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
 
-      // 标题
-      ctx.fillStyle = '#111111';
+      // 标题（与页面同款随机彩虹渐变）
+      const titleGradient = ctx.createLinearGradient(0, 0, W, 0);
+      for (let i = 0; i < 5; i++) {
+        titleGradient.addColorStop(i / 4, getRandomColor());
+      }
+      ctx.fillStyle = titleGradient;
       ctx.font = 'bold 40px sans-serif';
       ctx.fillText('余生很贵，请别浪费', W / 2, 70);
 
       ctx.fillStyle = '#999999';
       ctx.font = '24px sans-serif';
-      ctx.fillText(`出生 ${this.data.birthdate} · 预期 ${this.data.lifespan} 岁`, W / 2, 112);
+      ctx.fillText(`出生 ${this.data.birthdate} · 跨度 ${this.data.lifespan} 年`, W / 2, 112);
 
       // 周历网格
       let y = headerH;
@@ -365,10 +396,10 @@ Page({
       const s = this.data.stats;
       ctx.fillStyle = '#111111';
       ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(`已过 ${s.passedPercent} · 剩余约 ${s.remainYears} 年`, W / 2, y + 16);
+      ctx.fillText(`已过 ${s.passedPercent} · 未来约 ${s.remainYears} 年`, W / 2, y + 16);
       ctx.fillStyle = '#777777';
       ctx.font = '22px sans-serif';
-      ctx.fillText(`已过 ${s.passedWeeks} 周 · 剩余 ${s.remainWeeks} 周`, W / 2, y + 48);
+      ctx.fillText(`已过 ${s.passedWeeks} 周 · 未来 ${s.remainWeeks} 周`, W / 2, y + 48);
       ctx.fillText('把握当下，未来可期', W / 2, y + 82);
 
       wx.canvasToTempFilePath({
@@ -416,7 +447,7 @@ Page({
 
   onShareTimeline() {
     const share = {
-      title: '余生很贵，请别浪费——你的一生，画成一张图'
+      title: '余生很贵，请别浪费——把时间画成一张图'
     };
     if (this.posterPath) share.imageUrl = this.posterPath;
     return share;

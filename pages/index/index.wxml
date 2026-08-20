@@ -1,8 +1,19 @@
 <!-- 首次打开：引导页 -->
 <view class="onboarding" wx:if="{{needBirthday}}">
   <view class="onboarding-card">
-    <view class="onboarding-title">余生很贵，请别浪费</view>
-    <view class="onboarding-sub">选好出生日期和预期寿命，看看你的一生</view>
+    <view class="onboarding-title" style="background-image: {{gradient}};">余生很贵，请别浪费</view>
+    <view class="onboarding-sub">选好出生日期和时间跨度，看看你的人生时间图</view>
+    <view class="onboarding-demo">
+      <view class="demo-row">
+        <view
+          class="demo-dot {{item.isNow ? 'demo-dot-now' : ''}}"
+          style="background-color: {{item.color}}"
+          wx:for="{{demoWeeks}}"
+          wx:key="i"
+        ></view>
+      </view>
+      <view class="demo-caption">每个圆点 = 你的一周 · 一行 52 个 = 一年</view>
+    </view>
     <picker
       mode="date"
       value="{{birthdate}}"
@@ -18,18 +29,25 @@
       value="{{lifespanIndex}}"
       bindchange="onOnboardLifespanChange"
     >
-      <view class="onboarding-field">预期寿命：{{lifespanLabels[lifespanIndex]}}</view>
+      <view class="onboarding-field">时间跨度：{{lifespanLabels[lifespanIndex]}}</view>
     </picker>
-    <button class="onboarding-btn" bindtap="onOnboardConfirm">看看我的一生</button>
+    <button class="onboarding-btn" bindtap="onOnboardConfirm">看看我的人生时间图</button>
   </view>
 </view>
 
 <view class="container" wx:else>
   <view class="header">
-    <view class="title">余生很贵，请别浪费</view>
-    <view class="subtitle">你已经用掉的人生，和还没开始的人生</view>
+    <view class="title" style="background-image: {{gradient}};">余生很贵，请别浪费</view>
+    <view class="subtitle">已用的人生 · 未用的生命</view>
     <view class="subtitle">—— 都在这张图里</view>
   </view>
+
+  <view class="progress-container">
+    <view class="progress-bar-passed" style="width: {{passedPercent}}%;"></view>
+    <view class="progress-bar-future" style="width: {{futurePercent}}%; background: {{gradient}};"></view>
+  </view>
+
+  <view class="progress-percent">已过 {{stats.passedPercent}}</view>
 
   <view class="legend">
     <view class="legend-item">
@@ -48,7 +66,7 @@
       <view class="legend-dot legend-dot-milestone"></view>
       <text class="legend-text">里程碑</text>
     </view>
-    <text class="legend-tip">点击周点看日期</text>
+    <text class="legend-tip">每个圆点 = 一周 · 点击周点看日期</text>
   </view>
 
   <view class="controls">
@@ -67,7 +85,7 @@
       value="{{lifespanIndex}}"
       bindchange="onLifespanChange"
     >
-      <view class="date-field">{{lifespanLabels[lifespanIndex]}}</view>
+      <view class="date-field">跨度 {{lifespanLabels[lifespanIndex]}}</view>
     </picker>
   </view>
 
@@ -91,25 +109,16 @@
 
   <view class="stat-cards">
     <view class="stat-card">
-      <view class="stat-num">{{stats.passedPercent}}</view>
-      <view class="stat-label">已度过</view>
-    </view>
-    <view class="stat-card">
       <view class="stat-num">{{stats.passedWeeks}}</view>
       <view class="stat-label">已过周数</view>
     </view>
     <view class="stat-card">
       <view class="stat-num">{{stats.remainWeeks}}</view>
-      <view class="stat-label">剩余周数（约 {{stats.remainYears}} 年）</view>
+      <view class="stat-label">未来周数（约 {{stats.remainYears}} 年）</view>
     </view>
   </view>
 
   <view class="life-line">{{stats.lifeLine}}</view>
-
-  <view class="progress-container">
-    <view class="progress-bar-passed" style="width: {{passedPercent}}%;"></view>
-    <view class="progress-bar-future" style="width: {{futurePercent}}%; background: {{gradient}};"></view>
-  </view>
 
   <view class="actions">
     <button class="share-btn" open-type="share" hover-class="share-btn-hover">分享给朋友</button>
