@@ -1,0 +1,126 @@
+<!-- 首次打开：引导页 -->
+<view class="onboarding" wx:if="{{needBirthday}}">
+  <view class="onboarding-card">
+    <view class="onboarding-title">余生很贵，请别浪费</view>
+    <view class="onboarding-sub">选好出生日期和预期寿命，看看你的一生</view>
+    <picker
+      mode="date"
+      value="{{birthdate}}"
+      start="1900-01-01"
+      end="2100-12-31"
+      bindchange="onOnboardDateChange"
+    >
+      <view class="onboarding-field">出生日期：{{birthdate}}</view>
+    </picker>
+    <picker
+      mode="selector"
+      range="{{lifespanLabels}}"
+      value="{{lifespanIndex}}"
+      bindchange="onOnboardLifespanChange"
+    >
+      <view class="onboarding-field">预期寿命：{{lifespanLabels[lifespanIndex]}}</view>
+    </picker>
+    <button class="onboarding-btn" bindtap="onOnboardConfirm">看看我的一生</button>
+  </view>
+</view>
+
+<view class="container" wx:else>
+  <view class="header">
+    <view class="title">余生很贵，请别浪费</view>
+    <view class="subtitle">你已经用掉的人生，和还没开始的人生</view>
+    <view class="subtitle">—— 都在这张图里</view>
+  </view>
+
+  <view class="legend">
+    <view class="legend-item">
+      <view class="legend-dot legend-dot-passed"></view>
+      <text class="legend-text">已过的一周</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-dot legend-dot-future"></view>
+      <text class="legend-text">未来的一周</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-dot legend-dot-now"></view>
+      <text class="legend-text">本周 · 现在</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-dot legend-dot-milestone"></view>
+      <text class="legend-text">里程碑</text>
+    </view>
+    <text class="legend-tip">点击周点看日期</text>
+  </view>
+
+  <view class="controls">
+    <picker
+      mode="date"
+      value="{{birthdate}}"
+      start="1900-01-01"
+      end="2100-12-31"
+      bindchange="onDateChange"
+    >
+      <view class="date-field">生日 {{birthdate}}</view>
+    </picker>
+    <picker
+      mode="selector"
+      range="{{lifespanLabels}}"
+      value="{{lifespanIndex}}"
+      bindchange="onLifespanChange"
+    >
+      <view class="date-field">{{lifespanLabels[lifespanIndex]}}</view>
+    </picker>
+  </view>
+
+  <view class="calendar-container">
+    <view class="decade" wx:for="{{decades}}" wx:for-item="decade" wx:key="label">
+      <view class="decade-label">{{decade.label}}</view>
+      <view class="week-grid">
+        <view
+          class="week week-{{week.state}}"
+          style="{{week.style}}"
+          hover-class="week-hover"
+          wx:for="{{decade.weeks}}"
+          wx:for-item="week"
+          wx:key="totalWeek"
+          data-totalweek="{{week.totalWeek}}"
+          bindtap="onWeekTap"
+        ></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="stat-cards">
+    <view class="stat-card">
+      <view class="stat-num">{{stats.passedPercent}}</view>
+      <view class="stat-label">已度过</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-num">{{stats.passedWeeks}}</view>
+      <view class="stat-label">已过周数</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-num">{{stats.remainWeeks}}</view>
+      <view class="stat-label">剩余周数（约 {{stats.remainYears}} 年）</view>
+    </view>
+  </view>
+
+  <view class="life-line">{{stats.lifeLine}}</view>
+
+  <view class="progress-container">
+    <view class="progress-bar-passed" style="width: {{passedPercent}}%;"></view>
+    <view class="progress-bar-future" style="width: {{futurePercent}}%; background: {{gradient}};"></view>
+  </view>
+
+  <view class="actions">
+    <button class="share-btn" open-type="share" hover-class="share-btn-hover">分享给朋友</button>
+    <button class="poster-btn" bindtap="onSavePoster" hover-class="poster-btn-hover">保存我的海报</button>
+  </view>
+
+  <view class="quote">「{{quote}}」</view>
+
+  <view class="footer">
+    <view>把握当下，未来可期</view>
+  </view>
+
+  <canvas type="2d" id="poster" class="poster-canvas"></canvas>
+</view>
