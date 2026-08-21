@@ -30,12 +30,26 @@ const POSTER_COLORS = {
 // 引导页演示行的柔和彩色（与图例「未来的一周」渐变同款色系）
 const DEMO_PASTELS = ['#ff9a9e', '#fad0c4', '#a18cd1', '#fbc2eb', '#8fd3f4'];
 
-// 生成一个随机颜色（HSL，与原网页 getRandomColor 一致）
+// 生成一个随机颜色（随机色相/饱和度/亮度，输出 hex）。
+// 注意：canvas 的 addColorStop/fillStyle 在真机 iOS 上对 hsl() 支持不稳定，
+// 会抛异常导致海报静默失败，所以统一转成 hex（CSS 与 canvas 都兼容）。
+function hslToHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return ('0' + Math.round(255 * c).toString(16)).slice(-2);
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 function getRandomColor() {
   const hue = Math.floor(Math.random() * 360);
   const saturation = 70 + Math.floor(Math.random() * 30); // 70-100%
   const lightness = 60 + Math.floor(Math.random() * 20); // 60-80%
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  return hslToHex(hue, saturation, lightness);
 }
 
 // 把 Date 格式化为 YYYY-MM-DD
@@ -56,6 +70,18 @@ function randomGradient() {
     colors.push(getRandomColor());
   }
   return `linear-gradient(to right, ${colors.join(', ')})`;
+}
+
+// 圆角矩形路径（canvas 海报用，兼容性优于原生 ctx.roundRect）
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
 }
 
 Page({
@@ -304,13 +330,22 @@ Page({
     const query = wx.createSelectorQuery().in(this);
     query.select('#poster').fields({ node: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
+        console.error('[海报] 画布未就绪', res);
+        wx.showToast({ title: '海报生成失败', icon: 'none' });
         return; // 画布尚未就绪（例如仍在引导页）
       }
       const canvas = res[0].node;
       const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('[海报] getContext 返回 null');
+        wx.showToast({ title: '海报生成失败', icon: 'none' });
+        return;
+      }
+      // dpr 上限压到 2：高 DPR 屏（iPhone 等 pixelRatio=3）时画布物理高度会到
+      // 1648 * 3 = 4944px，超过 iOS 约 4096px 的 canvas 上限，导致导出静默失败。
       let dpr = 2;
       try {
-        dpr = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()).pixelRatio || 2;
+        dpr = Math.min((wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()).pixelRatio || 2, 2);
       } catch (e) {}
 
       const W = 750; // 海报逻辑宽度
@@ -321,7 +356,7 @@ Page({
       const gridW = cols * pitch;
       const startX = (W - gridW) / 2;
 
-      const headerH = 150;
+      const headerH = 185;
       const labelH = 40;
       const decadeGap = 16;
       const decadeH = rowsPerDecade * pitch;
@@ -348,11 +383,38 @@ Page({
       }
       ctx.fillStyle = titleGradient;
       ctx.font = 'bold 40px sans-serif';
-      ctx.fillText('余生很贵，请别浪费', W / 2, 70);
+      ctx.fillText('余生很贵，请别浪费', W / 2, 62);
 
       ctx.fillStyle = '#999999';
       ctx.font = '24px sans-serif';
-      ctx.fillText(`出生 ${this.data.birthdate} · 跨度 ${this.data.lifespan} 年`, W / 2, 112);
+      ctx.fillText(`出生 ${this.data.birthdate} · 跨度 ${this.data.lifespan} 年`, W / 2, 100);
+
+      // —— 人生进度条（与页面一致：黑色=已过，彩虹渐变=未来）——
+      const barX = 70;
+      const barY = 118;
+      const barW = W - barX * 2;
+      const barH = 18;
+      const passedW = Math.max(0, Math.min(barW, barW * (this.data.passedPercent / 100)));
+
+      roundRect(ctx, barX, barY, barW, barH, barH / 2);
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      ctx.save();
+      roundRect(ctx, barX, barY, barW, barH, barH / 2);
+      ctx.clip();
+      const futureGradient = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+      for (let i = 0; i < 5; i++) {
+        futureGradient.addColorStop(i / 4, getRandomColor());
+      }
+      ctx.fillStyle = futureGradient;
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(barX, barY, passedW, barH);
+      ctx.restore();
+
+      ctx.fillStyle = '#888888';
+      ctx.font = '22px sans-serif';
+      ctx.fillText(`已过 ${this.data.stats.passedPercent}`, W / 2, 158);
 
       // 周历网格
       let y = headerH;
@@ -415,7 +477,10 @@ Page({
             });
           }
         },
-        fail: () => wx.showToast({ title: '海报生成失败', icon: 'none' })
+        fail: (err) => {
+          console.error('[海报] canvasToTempFilePath 失败', err);
+          wx.showToast({ title: '海报生成失败', icon: 'none' });
+        }
       });
     });
   },

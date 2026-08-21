@@ -396,11 +396,13 @@
 }
 
 .poster-canvas {
-  position: absolute;
-  left: -9999rpx;
+  position: fixed;
   top: 0;
-  width: 750px;
-  height: 1400px;
+  left: 0;
+  width: 750rpx;
+  height: 1400rpx;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .quote {
