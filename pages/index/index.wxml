@@ -42,6 +42,17 @@
     <view class="subtitle">—— 都在这张图里</view>
   </view>
 
+  <view class="lifetimer">
+    <view class="lifetimer-row">
+      <text class="lifetimer-label">已活</text>
+      <text class="lifetimer-value lifetimer-elapsed"><block wx:for="{{elapsedParts}}" wx:for-item="p" wx:key="unit"><text class="lifetimer-num">{{p.num}}</text><text class="lifetimer-unit">{{p.unit}} </text></block><text class="lifetimer-sec">{{elapsedSec}}</text><text class="lifetimer-unit"> 秒</text></text>
+    </view>
+    <view class="lifetimer-row">
+      <text class="lifetimer-label">剩余</text>
+      <text class="lifetimer-value lifetimer-remain"><block wx:for="{{remainParts}}" wx:for-item="p" wx:key="unit"><text class="lifetimer-num">{{p.num}}</text><text class="lifetimer-unit">{{p.unit}} </text></block><text class="lifetimer-sec">{{remainSec}}</text><text class="lifetimer-unit"> 秒</text></text>
+    </view>
+  </view>
+
   <view class="progress-container">
     <view class="progress-bar-passed" style="width: {{passedPercent}}%;"></view>
     <view class="progress-bar-future" style="width: {{futurePercent}}%; background: {{gradient}};"></view>

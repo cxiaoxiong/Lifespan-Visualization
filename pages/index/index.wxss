@@ -130,6 +130,49 @@
   line-height: 1.7;
 }
 
+/* 顶部生命计时器：已活 + 剩余 */
+.lifetimer {
+  text-align: center;
+  margin: 8rpx 0 24rpx;
+}
+
+.lifetimer-row {
+  line-height: 1.9;
+}
+
+.lifetimer-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-right: 12rpx;
+}
+
+.lifetimer-value {
+  font-size: 28rpx;
+  color: #333;
+  font-variant-numeric: tabular-nums;
+}
+
+.lifetimer-num {
+  font-weight: 600;
+}
+
+.lifetimer-unit {
+  color: #999;
+}
+
+.lifetimer-elapsed {
+  color: #b98c2d;
+}
+
+.lifetimer-remain {
+  color: #2e9e5b;
+}
+
+.lifetimer-sec {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-weight: 700;
+}
+
 /* 图例 */
 .legend {
   display: flex;
@@ -543,5 +586,25 @@
 
   .poster-btn-hover {
     background-color: #2a2a2d;
+  }
+
+  .lifetimer-value {
+    color: #f0f0f0;
+  }
+
+  .lifetimer-label {
+    color: #9a9a9a;
+  }
+
+  .lifetimer-unit {
+    color: #9a9a9a;
+  }
+
+  .lifetimer-elapsed {
+    color: #c9a13b;
+  }
+
+  .lifetimer-remain {
+    color: #43b67f;
   }
 }

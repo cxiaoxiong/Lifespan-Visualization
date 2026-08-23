@@ -2,6 +2,7 @@ const WEEKS_PER_YEAR = 52;
 const WEEKS_PER_DECADE = 10 * WEEKS_PER_YEAR; // 520
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MS_PER_YEAR = 365.2425 * MS_PER_DAY; // 平均回归年，用于顶部生命计时器
 
 // 里程碑年龄（对应整岁生日的周，金色标记）
 const MILESTONE_AGES = [18, 30, 60, 80];
@@ -104,7 +105,11 @@ Page({
     passedPercent: 0,
     futurePercent: 0,
     gradient: '',
-    quote: ''
+    quote: '',
+    elapsedParts: [],
+    elapsedSec: '00.00',
+    remainParts: [],
+    remainSec: '00.00'
   },
 
   onLoad() {
@@ -156,6 +161,7 @@ Page({
 
     if (!patch.needBirthday) {
       this.updateCalendar();
+      this.startLifeTimer();
     }
   },
 
@@ -164,6 +170,21 @@ Page({
     if (!this.data.needBirthday) {
       this.preGeneratePoster();
     }
+  },
+
+  onShow() {
+    // 回到前台时恢复计时器（Date.now() 绝对时间计算，数值自动连续）
+    if (!this.data.needBirthday) {
+      this.startLifeTimer();
+    }
+  },
+
+  onHide() {
+    this.stopLifeTimer();
+  },
+
+  onUnload() {
+    this.stopLifeTimer();
   },
 
   // —— 首次引导页 ——
@@ -184,6 +205,7 @@ Page({
     wx.setStorageSync('lifespan', this.data.lifespan);
     this.setData({ needBirthday: false });
     this.updateCalendar();
+    this.startLifeTimer();
     this.preGeneratePoster();
   },
 
@@ -231,6 +253,10 @@ Page({
     const birth = new Date(birthdate.replace(/-/g, '/'));
     const today = new Date();
 
+    // 缓存生命计时器的起止时刻（绝对时间，供顶部计时器每 tick 计算）
+    this._birthMs = birth.getTime();
+    this._endMs = this._birthMs + lifespan * MS_PER_YEAR;
+
     let ageInWeeks = Math.floor((today - birth) / MS_PER_WEEK);
     // 边界保护：出生日期在未来 / 超过时间跨度时，避免负数和超界
     ageInWeeks = Math.max(0, Math.min(ageInWeeks, totalWeeks));
@@ -277,6 +303,67 @@ Page({
     }
 
     this.setData({ decades, stats, passedPercent, futurePercent, gradient });
+  },
+
+  // —— 顶部生命计时器：已活（累计）+ 剩余（倒数），每 10ms 刷新 ——
+  startLifeTimer() {
+    this.stopLifeTimer();
+    this._tickLifeTimer();
+    this._lifeTimer = setInterval(() => this._tickLifeTimer(), 10);
+  },
+
+  stopLifeTimer() {
+    if (this._lifeTimer) {
+      clearInterval(this._lifeTimer);
+      this._lifeTimer = null;
+    }
+  },
+
+  // 用 Date.now() 绝对时间计算，不累加计数器，避免 setInterval 漂移
+  _tickLifeTimer() {
+    if (this.data.needBirthday || !this._birthMs || !this._endMs) return;
+    const now = Date.now();
+    const elapsed = Math.max(0, now - this._birthMs);
+    const remain = Math.max(0, this._endMs - now);
+
+    const e = this._formatDuration(elapsed);
+    const r = this._formatDuration(remain);
+
+    const patch = { elapsedSec: e.sec, remainSec: r.sec };
+    // 「天 时 分」只在分钟边界变化时才更新，避免高频 setData
+    const eKey = e.parts.map((p) => p.num).join('');
+    if (eKey !== this._elapsedKey) {
+      this._elapsedKey = eKey;
+      patch.elapsedParts = e.parts;
+    }
+    const rKey = r.parts.map((p) => p.num).join('');
+    if (rKey !== this._remainKey) {
+      this._remainKey = rKey;
+      patch.remainParts = r.parts;
+    }
+    this.setData(patch);
+  },
+
+  // 把毫秒拆成 { parts: [{ num, unit }], sec: 'SS.xx' }（数字与单位分离，便于只给数字染色）
+  _formatDuration(ms) {
+    const pad = (n) => (n < 10 ? '0' + n : '' + n);
+    const day = Math.floor(ms / MS_PER_DAY);
+    let rest = ms - day * MS_PER_DAY;
+    const hour = Math.floor(rest / (60 * 60 * 1000));
+    rest -= hour * 60 * 60 * 1000;
+    const min = Math.floor(rest / (60 * 1000));
+    rest -= min * 60 * 1000;
+    const sec = Math.floor(rest / 1000);
+    const centis = Math.floor((rest % 1000) / 10);
+
+    return {
+      parts: [
+        { num: formatThousands(day), unit: '天' },
+        { num: pad(hour), unit: '时' },
+        { num: pad(min), unit: '分' }
+      ],
+      sec: `${pad(sec)}.${pad(centis)}`
+    };
   },
 
   onWeekTap(e) {
@@ -470,11 +557,7 @@ Page({
         success: (r) => {
           this.posterPath = r.tempFilePath;
           if (save) {
-            wx.saveImageToPhotosAlbum({
-              filePath: r.tempFilePath,
-              success: () => wx.showToast({ title: '已保存到相册', icon: 'success' }),
-              fail: (err) => this.handleSaveFail(err)
-            });
+            this.savePosterToAlbum(r.tempFilePath);
           }
         },
         fail: (err) => {
@@ -485,17 +568,65 @@ Page({
     });
   },
 
+  // 保存到相册前先判断授权状态，再决定「直接保存 / 主动授权 / 引导去设置」
+  savePosterToAlbum(filePath) {
+    wx.getSetting({
+      success: (res) => {
+        const auth = res.authSetting['scope.writePhotosAlbum'];
+        if (auth === false) {
+          // 用户之前明确拒绝过：wx.authorize 不会再弹窗，只能引导去设置页
+          this.showAlbumAuthGuide();
+        } else if (auth === true) {
+          this.saveImage(filePath);
+        } else {
+          // 从未询问过：先主动请求授权（比直接调保存 API 更可靠地弹出授权框）
+          wx.authorize({
+            scope: 'scope.writePhotosAlbum',
+            success: () => this.saveImage(filePath),
+            fail: () => this.showAlbumAuthGuide()
+          });
+        }
+      },
+      fail: () => {
+        // getSetting 异常时兜底：直接尝试保存（保存 API 自身会尝试触发授权）
+        this.saveImage(filePath);
+      }
+    });
+  },
+
+  saveImage(filePath) {
+    wx.saveImageToPhotosAlbum({
+      filePath,
+      success: () => wx.showToast({ title: '已保存到相册', icon: 'success' }),
+      fail: (err) => this.handleSaveFail(err)
+    });
+  },
+
+  showAlbumAuthGuide() {
+    wx.showModal({
+      title: '需要相册权限',
+      content: '保存海报需要「保存到相册」权限，请在设置中开启',
+      confirmText: '去设置',
+      cancelText: '取消',
+      success: (r) => {
+        if (r.confirm) wx.openSetting();
+      }
+    });
+  },
+
   handleSaveFail(err) {
     const msg = (err && err.errMsg) || '';
-    if (msg.indexOf('auth') >= 0 || msg.indexOf('authorize') >= 0 || msg.indexOf('deny') >= 0) {
+    console.error('[海报] 保存失败', err);
+    if (msg.indexOf('privacy') >= 0 || msg.indexOf('banned') >= 0) {
+      // 线上版最常见：后台「用户隐私保护指引」未声明相册权限
       wx.showModal({
-        title: '需要相册权限',
-        content: '请开启「保存到相册」权限后再试',
-        confirmText: '去设置',
-        success: (r) => {
-          if (r.confirm) wx.openSetting();
-        }
+        title: '保存失败',
+        content: '小程序后台的「用户隐私保护指引」未声明相册权限，请到 mp.weixin.qq.com 配置后再试',
+        showCancel: false,
+        confirmText: '知道了'
       });
+    } else if (msg.indexOf('auth') >= 0 || msg.indexOf('authorize') >= 0 || msg.indexOf('deny') >= 0 || msg.indexOf('permission') >= 0) {
+      this.showAlbumAuthGuide();
     } else {
       wx.showToast({ title: '保存失败', icon: 'none' });
     }
