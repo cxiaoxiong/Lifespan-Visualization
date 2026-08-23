@@ -7,19 +7,133 @@ const MS_PER_YEAR = 365.2425 * MS_PER_DAY; // 平均回归年，用于顶部生�
 // 里程碑年龄（对应整岁生日的周，金色标记）
 const MILESTONE_AGES = [18, 30, 60, 80];
 
-// 每日一句正能量格言
+// 每日一句正能量格言（中文 + 英文）
 const QUOTES = [
-  '你只管努力，时间自有答案',
-  '热爱可抵岁月漫长',
-  '种一棵树最好的时间是十年前，其次是现在',
-  '生活明朗，万物可爱',
-  '慢慢来，比较快',
-  '每一天都是你最年轻的一天',
-  '眼里有光，心中有爱',
-  '心之所向，素履以往',
-  '去做你害怕的事，害怕自会消失',
-  '日拱一卒，功不唐捐'
+  { zh: '你只管努力，时间自有答案', en: 'Just keep striving; time will give its answer' },
+  { zh: '热爱可抵岁月漫长', en: 'Love makes the long years worthwhile' },
+  { zh: '种一棵树最好的时间是十年前，其次是现在', en: 'The best time to plant a tree was ten years ago; the next best is now' },
+  { zh: '生活明朗，万物可爱', en: 'Life is bright; all things are lovely' },
+  { zh: '慢慢来，比较快', en: 'Slow down — that’s actually faster' },
+  { zh: '每一天都是你最年轻的一天', en: 'Every day is the youngest day of your life' },
+  { zh: '眼里有光，心中有爱', en: 'Light in your eyes, love in your heart' },
+  { zh: '心之所向，素履以往', en: 'Go where your heart leads, in simple shoes' },
+  { zh: '去做你害怕的事，害怕自会消失', en: 'Do what you fear, and the fear will fade' },
+  { zh: '日拱一卒，功不唐捐', en: 'A pawn a day; no effort is ever wasted' }
 ];
+
+// 中英文文案字典：纯字符串供 WXML 用 {{t.xxx}} 绑定；函数为带参数的动态文案，供 JS / 海报调用。
+const I18N = {
+  zh: {
+    navTitle: '人生如格',
+    appTitle: '余生很贵，请别浪费',
+    onboardSub: '选好出生日期和时间跨度，看看你的人生时间图',
+    demoCaption: '每个圆点 = 你的一周 · 一行 52 个 = 一年',
+    birthdateLabel: '出生日期：',
+    lifespanLabel: '时间跨度：',
+    onboardConfirm: '看看我的人生时间图',
+    mainSub1: '已用的人生 · 未用的生命',
+    mainSub2: '—— 都在这张图里',
+    elapsedLabel: '已活',
+    remainLabel: '剩余',
+    secUnit: ' 秒',
+    passedPrefix: '已过 ',
+    legendPassed: '已过的一周',
+    legendFuture: '未来的一周',
+    legendNow: '本周 · 现在',
+    legendMilestone: '里程碑',
+    legendTip: '每个圆点 = 一周 · 点击周点看日期',
+    birthdayPrefix: '生日 ',
+    spanPrefix: '跨度 ',
+    passedWeeksLabel: '已过周数',
+    shareBtn: '分享给朋友',
+    posterBtn: '保存我的海报',
+    footer: '把握当下，未来可期',
+    posterFail: '海报生成失败',
+    savedAlbum: '已保存到相册',
+    albumTitle: '需要相册权限',
+    albumContent: '保存海报需要「保存到相册」权限，请在设置中开启',
+    goSettings: '去设置',
+    cancel: '取消',
+    saveFailTitle: '保存失败',
+    privacyContent: '小程序后台的「用户隐私保护指引」未声明相册权限，请到 mp.weixin.qq.com 配置后再试',
+    gotIt: '知道了',
+    saveFailToast: '保存失败',
+    posterTitle: '余生很贵，请别浪费',
+    posterFooter: '把握当下，未来可期',
+    weekModalTitle: '这一周',
+    shareTimeline: '余生很贵，请别浪费——把时间画成一张图',
+    units: { day: '天', hour: '时', min: '分' },
+    fmtLifespan: (n) => `${n} 年`,
+    fmtDecadeLabel: (s, e) => `${s}–${e}岁`,
+    fmtLifeLine: (d, r) => `今天是你来到世界的第 ${d} 天 · 未来还有约 ${r} 天`,
+    fmtFutureWeeks: (y) => `未来周数（约 ${y} 年）`,
+    fmtWeekNow: (t) => `现在 · ${t}\n你正在度过的这一周`,
+    fmtWeekBirth: (t) => `${t}\n你出生的一周`,
+    fmtWeekMilestone: (y, t) => `🎉 你 ${y} 岁生日的一周\n${t}`,
+    fmtWeekPast: (y, m, t) => `${t}\n那时你 ${y} 岁 ${m} 个月`,
+    fmtWeekFuture: (y, t) => `${t}\n届时你 ${y} 岁`,
+    fmtPosterBorn: (b, l) => `出生 ${b} · 跨度 ${l} 年`,
+    fmtPosterPassed: (p) => `已过 ${p}`,
+    fmtPosterStats1: (p, y) => `已过 ${p} · 未来约 ${y} 年`,
+    fmtPosterStats2: (pw, rw) => `已过 ${pw} 周 · 未来 ${rw} 周`,
+    fmtShareApp: (p) => `我已走过人生的 ${p}，你呢？`
+  },
+  en: {
+    navTitle: 'Life in Weeks',
+    appTitle: 'Life Is Precious — Make It Count',
+    onboardSub: 'Pick your birth date and lifespan to see your life calendar',
+    demoCaption: 'Each dot = one week · 52 dots = one year',
+    birthdateLabel: 'Birth date: ',
+    lifespanLabel: 'Lifespan: ',
+    onboardConfirm: 'See My Life Calendar',
+    mainSub1: 'Life lived · Life ahead',
+    mainSub2: '— all in this picture',
+    elapsedLabel: 'Lived',
+    remainLabel: 'Left',
+    secUnit: ' sec',
+    passedPrefix: 'Passed ',
+    legendPassed: 'A week past',
+    legendFuture: 'A week ahead',
+    legendNow: 'This week · Now',
+    legendMilestone: 'Milestone',
+    legendTip: 'Each dot = a week · tap a dot to see the date',
+    birthdayPrefix: 'Born ',
+    spanPrefix: 'Span ',
+    passedWeeksLabel: 'Weeks passed',
+    shareBtn: 'Share with Friends',
+    posterBtn: 'Save My Poster',
+    footer: 'Seize the day, the future awaits',
+    posterFail: 'Poster failed',
+    savedAlbum: 'Saved to album',
+    albumTitle: 'Album access needed',
+    albumContent: 'Saving the poster needs album access. Please enable it in Settings.',
+    goSettings: 'Settings',
+    cancel: 'Cancel',
+    saveFailTitle: 'Save failed',
+    privacyContent: 'The mini program’s privacy policy hasn’t declared album access. Configure it at mp.weixin.qq.com and try again.',
+    gotIt: 'Got it',
+    saveFailToast: 'Save failed',
+    posterTitle: 'Life Is Precious — Make It Count',
+    posterFooter: 'Seize the day, the future awaits',
+    weekModalTitle: 'This week',
+    shareTimeline: 'Life is precious — paint your time as a picture',
+    units: { day: 'd', hour: 'h', min: 'm' },
+    fmtLifespan: (n) => `${n} yr`,
+    fmtDecadeLabel: (s, e) => `Ages ${s}–${e}`,
+    fmtLifeLine: (d, r) => `Today is day ${d} since you were born · about ${r} days remain`,
+    fmtFutureWeeks: (y) => `Weeks ahead (≈ ${y} yrs)`,
+    fmtWeekNow: (t) => `Now · ${t}\nThe week you’re living`,
+    fmtWeekBirth: (t) => `${t}\nThe week you were born`,
+    fmtWeekMilestone: (y, t) => `🎉 Your ${y}th birthday week\n${t}`,
+    fmtWeekPast: (y, m, t) => `${t}\nBack then you were ${y} yrs ${m} mo`,
+    fmtWeekFuture: (y, t) => `${t}\nThen you’ll be ${y}`,
+    fmtPosterBorn: (b, l) => `Born ${b} · Span ${l} yrs`,
+    fmtPosterPassed: (p) => `Passed ${p}`,
+    fmtPosterStats1: (p, y) => `Passed ${p} · ≈ ${y} yrs ahead`,
+    fmtPosterStats2: (pw, rw) => `Passed ${pw} wks · ${rw} wks ahead`,
+    fmtShareApp: (p) => `I’ve lived ${p} of my life — how about you?`
+  }
+};
 
 // 海报周点配色（与 index.wxss 语义色保持一致）
 const POSTER_COLORS = {
@@ -106,6 +220,9 @@ Page({
     futurePercent: 0,
     gradient: '',
     quote: '',
+    lang: 'zh',
+    langLabel: 'EN',
+    t: {},
     elapsedParts: [],
     elapsedSec: '00.00',
     remainParts: [],
@@ -122,6 +239,7 @@ Page({
 
     const savedBirthdate = wx.getStorageSync('birthdate');
     const savedLifespan = wx.getStorageSync('lifespan');
+    const savedLang = wx.getStorageSync('language');
 
     const patch = {};
 
@@ -146,6 +264,7 @@ Page({
     // 每日一句格言：按一年中的第几天轮换，同一天内保持不变
     const now = new Date();
     const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / MS_PER_DAY);
+    this._quoteIndex = dayOfYear % QUOTES.length;
     // 渐变提前生成：首次打开显示引导页时不走 updateCalendar，标题也要有颜色
     // 引导页演示行：52 个圆点 = 一年，前半年金色（已过），后半年柔和彩色（未来），白点标记「现在」
     const demoWeeks = [];
@@ -157,12 +276,44 @@ Page({
         color: i === halfYear - 1 ? '' : i < halfYear ? '#c9a13b' : DEMO_PASTELS[i % DEMO_PASTELS.length]
       });
     }
-    this.setData({ quote: QUOTES[dayOfYear % QUOTES.length], gradient: randomGradient(), demoWeeks });
+    this.setData({ gradient: randomGradient(), demoWeeks });
+
+    // 应用语言（设置 t / 名言 / 导航栏标题 / 语言按钮标签），须先于计时器/周历
+    this.applyLang(savedLang || 'zh');
 
     if (!patch.needBirthday) {
       this.updateCalendar();
       this.startLifeTimer();
     }
+  },
+
+  // 应用指定语言：统一设置文案字典、WXML 绑定对象、名言、导航栏标题与切换按钮标签
+  applyLang(lang) {
+    if (lang !== 'en') lang = 'zh';
+    this._t = I18N[lang];
+    // data.t 仅收纳纯字符串，函数（带参动态文案）留在 this._t 供 JS / 海报调用
+    const t = {};
+    for (const k in this._t) {
+      if (typeof this._t[k] !== 'function') t[k] = this._t[k];
+    }
+    wx.setNavigationBarTitle({ title: this._t.navTitle });
+    this.setData({
+      lang,
+      langLabel: lang === 'zh' ? 'EN' : '中',
+      t,
+      lifespanLabels: this.data.lifespans.map((n) => this._t.fmtLifespan(n)),
+      quote: QUOTES[this._quoteIndex][lang]
+    });
+  },
+
+  // 中英文切换按钮
+  onToggleLang() {
+    const next = this.data.lang === 'zh' ? 'en' : 'zh';
+    wx.setStorageSync('language', next);
+    this.applyLang(next);
+    this.updateCalendar(); // 重渲 decade 标签 / 统计标签 / lifeLine
+    this._tickLifeTimer(); // 计时器单位立即切换
+    this.preGeneratePoster(); // 重绘海报，保持语言一致
   },
 
   onReady() {
@@ -268,14 +419,15 @@ Page({
     const rawDays = Math.floor((today - birth) / MS_PER_DAY);
     const dayNumber = Math.max(1, rawDays + 1);
     const remainingDays = Math.max(0, totalWeeks * 7 - rawDays);
-    const lifeLine = `今天是你来到世界的第 ${formatThousands(dayNumber)} 天 · 未来还有约 ${formatThousands(remainingDays)} 天`;
+    const lifeLine = this._t.fmtLifeLine(formatThousands(dayNumber), formatThousands(remainingDays));
 
     const stats = {
       passedPercent: ((ageInWeeks / totalWeeks) * 100).toFixed(1) + '%',
       passedWeeks: ageInWeeks,
       remainWeeks: remainingWeeks,
       remainYears: (remainingWeeks / WEEKS_PER_YEAR).toFixed(1),
-      lifeLine
+      lifeLine,
+      futureWeeksLabel: this._t.fmtFutureWeeks((remainingWeeks / WEEKS_PER_YEAR).toFixed(1))
     };
 
     const passedPercent = (ageInWeeks / totalWeeks) * 100;
@@ -297,7 +449,7 @@ Page({
         weeks.push(week);
       }
       decades.push({
-        label: `${i * 10}–${i * 10 + 9}岁`,
+        label: this._t.fmtDecadeLabel(i * 10, i * 10 + 9),
         weeks
       });
     }
@@ -347,6 +499,7 @@ Page({
   // 把毫秒拆成 { parts: [{ num, unit }], sec: 'SS.xx' }（数字与单位分离，便于只给数字染色）
   _formatDuration(ms) {
     const pad = (n) => (n < 10 ? '0' + n : '' + n);
+    const u = (this._t && this._t.units) || { day: '天', hour: '时', min: '分' };
     const day = Math.floor(ms / MS_PER_DAY);
     let rest = ms - day * MS_PER_DAY;
     const hour = Math.floor(rest / (60 * 60 * 1000));
@@ -358,9 +511,9 @@ Page({
 
     return {
       parts: [
-        { num: formatThousands(day), unit: '天' },
-        { num: pad(hour), unit: '时' },
-        { num: pad(min), unit: '分' }
+        { num: formatThousands(day), unit: u.day },
+        { num: pad(hour), unit: u.hour },
+        { num: pad(min), unit: u.min }
       ],
       sec: `${pad(sec)}.${pad(centis)}`
     };
@@ -380,22 +533,22 @@ Page({
 
     let content;
     if (isNow) {
-      content = `现在 · ${dateText}\n你正在度过的这一周`;
+      content = this._t.fmtWeekNow(dateText);
     } else if (totalWeek === 0) {
-      content = `${dateText}\n你出生的一周`;
+      content = this._t.fmtWeekBirth(dateText);
     } else if (isBirthdayWeek) {
-      content = `🎉 你 ${years} 岁生日的一周\n${dateText}`;
+      content = this._t.fmtWeekMilestone(years, dateText);
     } else if (totalWeek < this._ageInWeeks) {
-      content = `${dateText}\n那时你 ${years} 岁 ${months} 个月`;
+      content = this._t.fmtWeekPast(years, months, dateText);
     } else {
-      content = `${dateText}\n届时你 ${years} 岁`;
+      content = this._t.fmtWeekFuture(years, dateText);
     }
 
     wx.showModal({
-      title: '这一周',
+      title: this._t.weekModalTitle,
       content,
       showCancel: false,
-      confirmText: '知道了'
+      confirmText: this._t.gotIt
     });
   },
 
@@ -418,14 +571,14 @@ Page({
     query.select('#poster').fields({ node: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
         console.error('[海报] 画布未就绪', res);
-        wx.showToast({ title: '海报生成失败', icon: 'none' });
+        wx.showToast({ title: this._t.posterFail, icon: 'none' });
         return; // 画布尚未就绪（例如仍在引导页）
       }
       const canvas = res[0].node;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         console.error('[海报] getContext 返回 null');
-        wx.showToast({ title: '海报生成失败', icon: 'none' });
+        wx.showToast({ title: this._t.posterFail, icon: 'none' });
         return;
       }
       // dpr 上限压到 2：高 DPR 屏（iPhone 等 pixelRatio=3）时画布物理高度会到
@@ -470,11 +623,11 @@ Page({
       }
       ctx.fillStyle = titleGradient;
       ctx.font = 'bold 40px sans-serif';
-      ctx.fillText('余生很贵，请别浪费', W / 2, 62);
+      ctx.fillText(this._t.posterTitle, W / 2, 62);
 
       ctx.fillStyle = '#999999';
       ctx.font = '24px sans-serif';
-      ctx.fillText(`出生 ${this.data.birthdate} · 跨度 ${this.data.lifespan} 年`, W / 2, 100);
+      ctx.fillText(this._t.fmtPosterBorn(this.data.birthdate, this.data.lifespan), W / 2, 100);
 
       // —— 人生进度条（与页面一致：黑色=已过，彩虹渐变=未来）——
       const barX = 70;
@@ -501,7 +654,7 @@ Page({
 
       ctx.fillStyle = '#888888';
       ctx.font = '22px sans-serif';
-      ctx.fillText(`已过 ${this.data.stats.passedPercent}`, W / 2, 158);
+      ctx.fillText(this._t.fmtPosterPassed(this.data.stats.passedPercent), W / 2, 158);
 
       // 周历网格
       let y = headerH;
@@ -545,11 +698,11 @@ Page({
       const s = this.data.stats;
       ctx.fillStyle = '#111111';
       ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(`已过 ${s.passedPercent} · 未来约 ${s.remainYears} 年`, W / 2, y + 16);
+      ctx.fillText(this._t.fmtPosterStats1(s.passedPercent, s.remainYears), W / 2, y + 16);
       ctx.fillStyle = '#777777';
       ctx.font = '22px sans-serif';
-      ctx.fillText(`已过 ${s.passedWeeks} 周 · 未来 ${s.remainWeeks} 周`, W / 2, y + 48);
-      ctx.fillText('把握当下，未来可期', W / 2, y + 82);
+      ctx.fillText(this._t.fmtPosterStats2(s.passedWeeks, s.remainWeeks), W / 2, y + 48);
+      ctx.fillText(this._t.posterFooter, W / 2, y + 82);
 
       wx.canvasToTempFilePath({
         canvas,
@@ -562,7 +715,7 @@ Page({
         },
         fail: (err) => {
           console.error('[海报] canvasToTempFilePath 失败', err);
-          wx.showToast({ title: '海报生成失败', icon: 'none' });
+          wx.showToast({ title: this._t.posterFail, icon: 'none' });
         }
       });
     });
@@ -597,17 +750,17 @@ Page({
   saveImage(filePath) {
     wx.saveImageToPhotosAlbum({
       filePath,
-      success: () => wx.showToast({ title: '已保存到相册', icon: 'success' }),
+      success: () => wx.showToast({ title: this._t.savedAlbum, icon: 'success' }),
       fail: (err) => this.handleSaveFail(err)
     });
   },
 
   showAlbumAuthGuide() {
     wx.showModal({
-      title: '需要相册权限',
-      content: '保存海报需要「保存到相册」权限，请在设置中开启',
-      confirmText: '去设置',
-      cancelText: '取消',
+      title: this._t.albumTitle,
+      content: this._t.albumContent,
+      confirmText: this._t.goSettings,
+      cancelText: this._t.cancel,
       success: (r) => {
         if (r.confirm) wx.openSetting();
       }
@@ -620,21 +773,21 @@ Page({
     if (msg.indexOf('privacy') >= 0 || msg.indexOf('banned') >= 0) {
       // 线上版最常见：后台「用户隐私保护指引」未声明相册权限
       wx.showModal({
-        title: '保存失败',
-        content: '小程序后台的「用户隐私保护指引」未声明相册权限，请到 mp.weixin.qq.com 配置后再试',
+        title: this._t.saveFailTitle,
+        content: this._t.privacyContent,
         showCancel: false,
-        confirmText: '知道了'
+        confirmText: this._t.gotIt
       });
     } else if (msg.indexOf('auth') >= 0 || msg.indexOf('authorize') >= 0 || msg.indexOf('deny') >= 0 || msg.indexOf('permission') >= 0) {
       this.showAlbumAuthGuide();
     } else {
-      wx.showToast({ title: '保存失败', icon: 'none' });
+      wx.showToast({ title: this._t.saveFailToast, icon: 'none' });
     }
   },
 
   onShareAppMessage() {
     const share = {
-      title: `我已走过人生的 ${this.data.stats.passedPercent}，你呢？`,
+      title: this._t.fmtShareApp(this.data.stats.passedPercent),
       path: '/pages/index/index'
     };
     if (this.posterPath) share.imageUrl = this.posterPath;
@@ -643,7 +796,7 @@ Page({
 
   onShareTimeline() {
     const share = {
-      title: '余生很贵，请别浪费——把时间画成一张图'
+      title: this._t.shareTimeline
     };
     if (this.posterPath) share.imageUrl = this.posterPath;
     return share;

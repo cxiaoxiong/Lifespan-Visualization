@@ -1,8 +1,9 @@
 <!-- 首次打开：引导页 -->
 <view class="onboarding" wx:if="{{needBirthday}}">
   <view class="onboarding-card">
-    <view class="onboarding-title" style="background-image: {{gradient}};">余生很贵，请别浪费</view>
-    <view class="onboarding-sub">选好出生日期和时间跨度，看看你的人生时间图</view>
+    <view class="lang-toggle" bindtap="onToggleLang">{{langLabel}}</view>
+    <view class="onboarding-title" style="background-image: {{gradient}};">{{t.appTitle}}</view>
+    <view class="onboarding-sub">{{t.onboardSub}}</view>
     <view class="onboarding-demo">
       <view class="demo-row">
         <view
@@ -12,7 +13,7 @@
           wx:key="i"
         ></view>
       </view>
-      <view class="demo-caption">每个圆点 = 你的一周 · 一行 52 个 = 一年</view>
+      <view class="demo-caption">{{t.demoCaption}}</view>
     </view>
     <picker
       mode="date"
@@ -21,7 +22,7 @@
       end="2100-12-31"
       bindchange="onOnboardDateChange"
     >
-      <view class="onboarding-field">出生日期：{{birthdate}}</view>
+      <view class="onboarding-field">{{t.birthdateLabel}}{{birthdate}}</view>
     </picker>
     <picker
       mode="selector"
@@ -29,27 +30,28 @@
       value="{{lifespanIndex}}"
       bindchange="onOnboardLifespanChange"
     >
-      <view class="onboarding-field">时间跨度：{{lifespanLabels[lifespanIndex]}}</view>
+      <view class="onboarding-field">{{t.lifespanLabel}}{{lifespanLabels[lifespanIndex]}}</view>
     </picker>
-    <button class="onboarding-btn" bindtap="onOnboardConfirm">看看我的人生时间图</button>
+    <button class="onboarding-btn" bindtap="onOnboardConfirm">{{t.onboardConfirm}}</button>
   </view>
 </view>
 
 <view class="container" wx:else>
   <view class="header">
-    <view class="title" style="background-image: {{gradient}};">余生很贵，请别浪费</view>
-    <view class="subtitle">已用的人生 · 未用的生命</view>
-    <view class="subtitle">—— 都在这张图里</view>
+    <view class="lang-toggle" bindtap="onToggleLang">{{langLabel}}</view>
+    <view class="title" style="background-image: {{gradient}};">{{t.appTitle}}</view>
+    <view class="subtitle">{{t.mainSub1}}</view>
+    <view class="subtitle">{{t.mainSub2}}</view>
   </view>
 
   <view class="lifetimer">
     <view class="lifetimer-row">
-      <text class="lifetimer-label">已活</text>
-      <text class="lifetimer-value lifetimer-elapsed"><block wx:for="{{elapsedParts}}" wx:for-item="p" wx:key="unit"><text class="lifetimer-num">{{p.num}}</text><text class="lifetimer-unit">{{p.unit}} </text></block><text class="lifetimer-sec">{{elapsedSec}}</text><text class="lifetimer-unit"> 秒</text></text>
+      <text class="lifetimer-label">{{t.elapsedLabel}}</text>
+      <text class="lifetimer-value lifetimer-elapsed"><block wx:for="{{elapsedParts}}" wx:for-item="p" wx:key="unit"><text class="lifetimer-num">{{p.num}}</text><text class="lifetimer-unit">{{p.unit}} </text></block><text class="lifetimer-sec">{{elapsedSec}}</text><text class="lifetimer-unit">{{t.secUnit}}</text></text>
     </view>
     <view class="lifetimer-row">
-      <text class="lifetimer-label">剩余</text>
-      <text class="lifetimer-value lifetimer-remain"><block wx:for="{{remainParts}}" wx:for-item="p" wx:key="unit"><text class="lifetimer-num">{{p.num}}</text><text class="lifetimer-unit">{{p.unit}} </text></block><text class="lifetimer-sec">{{remainSec}}</text><text class="lifetimer-unit"> 秒</text></text>
+      <text class="lifetimer-label">{{t.remainLabel}}</text>
+      <text class="lifetimer-value lifetimer-remain"><block wx:for="{{remainParts}}" wx:for-item="p" wx:key="unit"><text class="lifetimer-num">{{p.num}}</text><text class="lifetimer-unit">{{p.unit}} </text></block><text class="lifetimer-sec">{{remainSec}}</text><text class="lifetimer-unit">{{t.secUnit}}</text></text>
     </view>
   </view>
 
@@ -58,26 +60,26 @@
     <view class="progress-bar-future" style="width: {{futurePercent}}%; background: {{gradient}};"></view>
   </view>
 
-  <view class="progress-percent">已过 {{stats.passedPercent}}</view>
+  <view class="progress-percent">{{t.passedPrefix}}{{stats.passedPercent}}</view>
 
   <view class="legend">
     <view class="legend-item">
       <view class="legend-dot legend-dot-passed"></view>
-      <text class="legend-text">已过的一周</text>
+      <text class="legend-text">{{t.legendPassed}}</text>
     </view>
     <view class="legend-item">
       <view class="legend-dot legend-dot-future"></view>
-      <text class="legend-text">未来的一周</text>
+      <text class="legend-text">{{t.legendFuture}}</text>
     </view>
     <view class="legend-item">
       <view class="legend-dot legend-dot-now"></view>
-      <text class="legend-text">本周 · 现在</text>
+      <text class="legend-text">{{t.legendNow}}</text>
     </view>
     <view class="legend-item">
       <view class="legend-dot legend-dot-milestone"></view>
-      <text class="legend-text">里程碑</text>
+      <text class="legend-text">{{t.legendMilestone}}</text>
     </view>
-    <text class="legend-tip">每个圆点 = 一周 · 点击周点看日期</text>
+    <text class="legend-tip">{{t.legendTip}}</text>
   </view>
 
   <view class="controls">
@@ -88,7 +90,7 @@
       end="2100-12-31"
       bindchange="onDateChange"
     >
-      <view class="date-field">生日 {{birthdate}}</view>
+      <view class="date-field">{{t.birthdayPrefix}}{{birthdate}}</view>
     </picker>
     <picker
       mode="selector"
@@ -96,7 +98,7 @@
       value="{{lifespanIndex}}"
       bindchange="onLifespanChange"
     >
-      <view class="date-field">跨度 {{lifespanLabels[lifespanIndex]}}</view>
+      <view class="date-field">{{t.spanPrefix}}{{lifespanLabels[lifespanIndex]}}</view>
     </picker>
   </view>
 
@@ -121,25 +123,25 @@
   <view class="stat-cards">
     <view class="stat-card">
       <view class="stat-num">{{stats.passedWeeks}}</view>
-      <view class="stat-label">已过周数</view>
+      <view class="stat-label">{{t.passedWeeksLabel}}</view>
     </view>
     <view class="stat-card">
       <view class="stat-num">{{stats.remainWeeks}}</view>
-      <view class="stat-label">未来周数（约 {{stats.remainYears}} 年）</view>
+      <view class="stat-label">{{stats.futureWeeksLabel}}</view>
     </view>
   </view>
 
   <view class="life-line">{{stats.lifeLine}}</view>
 
   <view class="actions">
-    <button class="share-btn" open-type="share" hover-class="share-btn-hover">分享给朋友</button>
-    <button class="poster-btn" bindtap="onSavePoster" hover-class="poster-btn-hover">保存我的海报</button>
+    <button class="share-btn" open-type="share" hover-class="share-btn-hover">{{t.shareBtn}}</button>
+    <button class="poster-btn" bindtap="onSavePoster" hover-class="poster-btn-hover">{{t.posterBtn}}</button>
   </view>
 
   <view class="quote">「{{quote}}」</view>
 
   <view class="footer">
-    <view>把握当下，未来可期</view>
+    <view>{{t.footer}}</view>
   </view>
 
   <canvas type="2d" id="poster" class="poster-canvas"></canvas>
